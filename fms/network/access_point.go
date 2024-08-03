@@ -8,13 +8,13 @@ package network
 import (
 	"fmt"
 	"log"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Team254/cheesy-arena-lite/model"
+	"golang.org/x/crypto/ssh"
 )
 
 const (
@@ -110,7 +110,7 @@ func (ap *AccessPoint) ConfigureAdminWifi() error {
 		fmt.Sprintf("set wireless.@wifi-iface[0].key='%s'", ap.adminWpaKey),
 		"commit wireless",
 	}
-	command := fmt.Sprintf("uci batch <<ENDCONFIG && wifi reload radio1\n%s\nENDCONFIG\n", strings.Join(commands, "\n"))
+	command := fmt.Sprintf("uci batch <<ENDCONFIG && wifi reconf radio1\n%s\nENDCONFIG\n", strings.Join(commands, "\n"))
 	_, err := ap.runCommand(command)
 	return err
 }
@@ -130,7 +130,7 @@ func (ap *AccessPoint) handleTeamWifiConfiguration(teams [6]*model.Team) {
 		fmt.Printf("Failed to configure team WiFi: %v", err)
 		return
 	}
-	command := fmt.Sprintf("uci batch <<ENDCONFIG && wifi reload radio0\n%s\nENDCONFIG\n", config)
+	command := fmt.Sprintf("uci batch <<ENDCONFIG && wifi reconf radio0\n%s\nENDCONFIG\n", config)
 
 	// Loop indefinitely at writing the configuration and reading it back until it is successfully applied.
 	attemptCount := 1
@@ -201,57 +201,57 @@ func (ap *AccessPoint) updateTeamWifiStatuses() error {
 // Logs into the access point via SSH and runs the given shell command.
 func (ap *AccessPoint) runCommand(command string) (string, error) {
 	// combine user and addr to form the full address
-	var ssh_addr = ap.username + "@" + ap.address
-	var str_port = strconv.Itoa(accessPointSshPort)
-
 	if ap.address == "" || ap.username == "" {
 		return "", fmt.Errorf("EMPTY ADDRESS, SKIPPING")
 	}
 
-	var str_command = []string{"sshpass", "-p", ap.password, "ssh", ssh_addr, "-p", str_port, command}
+	// var ssh_addr = ap.username + "@" + ap.address
+	// var str_port = strconv.Itoa(accessPointSshPort)
 
-	cmd := exec.Command("sshpass", "-p", ap.password, "ssh", ssh_addr, "-p", str_port, command)
+	// var str_command = []string{"sshpass", "-p", ap.password, "ssh", ssh_addr, "-p", str_port, command}
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		// log failed command
-		log.Println("FAILED SSH COMMAND: ", str_command)
-		return "", fmt.Errorf("FAILED SSH ERR: %v", err)
-	} else {
-		// log successful command
-		log.Println("Successful command")
+	// cmd := exec.Command("sshpass", "-p", ap.password, "ssh", ssh_addr, "-p", str_port, command)
+
+	// output, err := cmd.CombinedOutput()
+	// if err != nil {
+	// 	// log failed command
+	// 	log.Println("FAILED SSH COMMAND: ", str_command)
+	// 	return "", fmt.Errorf("FAILED SSH ERR: %v", err)
+	// } else {
+	// 	// log successful command
+	// 	log.Println("Successful command")
+	// }
+
+	// return string(output), nil
+
+	config := &ssh.ClientConfig{
+		User: ap.username,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(ap.password),
+		},
+		HostKeyCallback:   ssh.InsecureIgnoreHostKey(),
+		HostKeyAlgorithms: []string{"ssh-rsa"},
+		Timeout:           accessPointConnectTimeoutSec * time.Second,
 	}
 
-	return string(output), nil
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", ap.address, accessPointSshPort), config)
+	if err != nil {
+		return "", fmt.Errorf("Failed to dial: %v", err)
+	}
+	defer conn.Close()
 
-	// config := &ssh.ClientConfig{
-	// 	User: ap.username,
-	// 	Auth: []ssh.AuthMethod{
-	// 		ssh.Password(ap.password),
-	// 	},
-	// 	HostKeyCallback:   ssh.InsecureIgnoreHostKey(),
-	// 	HostKeyAlgorithms: []string{"ssh-rsa"},
-	// 	Timeout:           accessPointConnectTimeoutSec * time.Second,
-	// }
+	session, err := conn.NewSession()
+	if err != nil {
+		return "", fmt.Errorf("Failed to create session: %v", err)
+	}
+	defer session.Close()
 
-	// conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", ap.address, accessPointSshPort), config)
-	// if err != nil {
-	// 	return "", fmt.Errorf("Failed to dial: %v", err)
-	// }
-	// defer conn.Close()
+	outputBytes, err := session.CombinedOutput(command)
+	if err != nil {
+		return "", fmt.Errorf("Failed to run command: %v", err)
+	}
 
-	// session, err := conn.NewSession()
-	// if err != nil {
-	// 	return "", fmt.Errorf("Failed to create session: %v", err)
-	// }
-	// defer session.Close()
-
-	// outputBytes, err := session.CombinedOutput(command)
-	// if err != nil {
-	// 	return "", fmt.Errorf("Failed to run command: %v", err)
-	// }
-
-	// return string(outputBytes), nil
+	return string(outputBytes), nil
 }
 
 // Verifies WPA key validity and produces the configuration command for the given list of teams.

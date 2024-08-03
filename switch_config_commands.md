@@ -6,3 +6,5 @@
 6. run `boot`
 7. run `enable` for privileged mode (displays `Switch#`)
 8. run `configure terminal` and copy and paste the specific switch commands
+9. run `copy running-config startup-config` to save the config to startup
+10. run `show startup-config` to verify

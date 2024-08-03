@@ -1,0 +1,11 @@
+[Unit]
+Description=FMS Sever Service
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/home/fms/Scrimmage-FMS/fms/cheesy-arena-lite
+WorkingDirectory=/home/fms/Scrimmage-FMS/fms
+
+[Install]
+WantedBy=multi-user.target
