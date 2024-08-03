@@ -1,0 +1,181 @@
+! Catalyst 3500 series Scrimmage Box Config (24 port)
+! Default password is jmssux.
+!
+!
+version 15.0
+no service pad
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname FMSSwitch
+!
+!
+enable secret 5 $1$kKSW$fCMwnMdYvXui1TulfyYHN/
+!
+no aaa new-model
+system mtu routing 1500
+ip routing
+!
+ip dhcp excluded-address 10.0.100.1 10.0.100.100
+!
+! dhcp for normal configurations
+ip dhcp pool dhcppool
+network 10.0.100.0 255.255.255.0
+domain-name warp.com
+dns-server 8.8.8.8 8.8.4.4 
+default-router 10.0.100.1 
+lease 7
+!
+! dhcp for guest configurations
+ip dhcp pool dhcppool200
+network 10.0.200.0 255.255.255.0
+domain-name warp.com
+dns-server 8.8.8.8 8.8.4.4 
+default-router 10.0.200.1 
+lease 7
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+spanning-tree mode pvst
+spanning-tree portfast default
+spanning-tree extend system-id
+!
+vlan internal allocation policy ascending
+!
+!
+!
+! AP Port (General vlan 100)
+interface GigabitEthernet0/1
+ switchport access vlan 100
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 100
+ switchport mode trunk
+!
+!
+!
+! FMS Server Port
+interface FastEthernet0/1
+ switchport access vlan 100
+ switchport trunk encapsulation dot1q
+ switchport trunk native vlan 100
+ switchport mode trunk
+!
+!
+!
+! Team Ports (10,20,30,40,50,60)
+!
+interface FastEthernet0/2
+ switchport access vlan 10
+ switchport mode access
+!
+interface FastEthernet0/3
+ switchport access vlan 20
+ switchport mode access
+!
+interface FastEthernet0/4
+ switchport access vlan 30
+ switchport mode access
+!
+interface FastEthernet0/5
+ switchport access vlan 40
+ switchport mode access
+!
+interface FastEthernet0/6
+ switchport access vlan 50
+ switchport mode access
+!
+interface FastEthernet0/7
+ switchport access vlan 60
+ switchport mode access
+!
+interface FastEthernet0/8
+ switchport access vlan 100
+ switchport mode access
+!
+!
+!
+!
+!
+! config vlan ip's
+!
+interface Vlan1
+ ip address 10.0.0.61 255.255.255.0
+!
+interface Vlan10
+ ip address 10.0.1.61 255.255.255.0
+ ip access-group 110 in
+!
+interface Vlan20
+ ip address 10.0.2.61 255.255.255.0
+ ip access-group 120 in
+!
+interface Vlan30
+ ip address 10.0.3.61 255.255.255.0
+ ip access-group 130 in
+!
+interface Vlan40
+ ip address 10.0.4.61 255.255.255.0
+ ip access-group 140 in
+!
+interface Vlan50
+ ip address 10.0.5.61 255.255.255.0
+ ip access-group 150 in
+!
+interface Vlan60
+ ip address 10.0.6.61 255.255.255.0
+ ip access-group 160 in
+!
+interface Vlan100
+ ip address 10.0.100.2 255.255.255.0
+!
+interface vlan200
+ ip address 10.0.200.2 255.255.255.0
+ ip access-group 101 in
+!
+ip classless
+ip http server
+!
+! Deny list
+!
+access-list 101 deny tcp any host 10.0.200.1 eq 22
+access-list 101 deny tcp any host 10.0.200.1 eq 23
+access-list 101 permit ip any any
+access-list 110 permit ip 10.0.1.0 0.0.0.255 host 10.0.100.5
+access-list 110 permit udp any eq bootpc any eq bootps
+access-list 120 permit ip 10.0.2.0 0.0.0.255 host 10.0.100.5
+access-list 120 permit udp any eq bootpc any eq bootps
+access-list 130 permit ip 10.0.3.0 0.0.0.255 host 10.0.100.5
+access-list 130 permit udp any eq bootpc any eq bootps
+access-list 140 permit ip 10.0.4.0 0.0.0.255 host 10.0.100.5
+access-list 140 permit udp any eq bootpc any eq bootps
+access-list 150 permit ip 10.0.5.0 0.0.0.255 host 10.0.100.5
+access-list 150 permit udp any eq bootpc any eq bootps
+access-list 160 permit ip 10.0.6.0 0.0.0.255 host 10.0.100.5
+access-list 160 permit udp any eq bootpc any eq bootps
+!
+snmp-server community jmssux RO
+!
+line con 0
+ exec-timeout 0 0
+line vty 0 4
+ password jmssux
+ login
+line vty 5 15
+ password jmssux
+ login
+!
+end
+!
