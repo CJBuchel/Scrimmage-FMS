@@ -4,8 +4,8 @@ Description=FMS Sever Service
 [Service]
 Type=simple
 Restart=always
-ExecStart=/home/fms/Scrimmage-FMS/fms/cheesy-arena-lite
-WorkingDirectory=/home/fms/Scrimmage-FMS/fms
+ExecStart=/home/fms/Scrimmage-FMS/fms_scrimmage/cheesy-arena-lite
+WorkingDirectory=/home/fms/Scrimmage-FMS/fms_scrimmage
 
 [Install]
 WantedBy=multi-user.target

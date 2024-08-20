@@ -9,11 +9,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/Team254/cheesy-arena-lite/model"
+	"log"
 	"net"
 	"regexp"
 	"strconv"
 	"sync"
+
+	"github.com/Team254/cheesy-arena-lite/model"
 )
 
 const switchTelnetPort = 23
@@ -132,8 +134,10 @@ func (sw *Switch) getTeamVlans() (map[int]int, error) {
 // returns it as a string.
 func (sw *Switch) runCommand(command string) (string, error) {
 	// Open a Telnet connection to the switch.
+	log.Printf("Connecting to switch at %s...", sw.address)
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", sw.address, sw.port))
 	if err != nil {
+		log.Printf("Failed to connect to switch at %s: %s", sw.address, err)
 		return "", err
 	}
 	defer conn.Close()
@@ -143,6 +147,7 @@ func (sw *Switch) runCommand(command string) (string, error) {
 	_, err = writer.WriteString(fmt.Sprintf("%s\nenable\n%s\nterminal length 0\n%sexit\n", sw.password, sw.password,
 		command))
 	if err != nil {
+		log.Printf("Failed to write to switch at %s: %s", sw.address, err)
 		return "", err
 	}
 	err = writer.Flush()
@@ -156,11 +161,14 @@ func (sw *Switch) runCommand(command string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	log.Printf("Received response from switch at %s: %s", sw.address, reader.String())
 	return reader.String(), nil
 }
 
 // Logs into the switch via Telnet and runs the given command in global configuration mode. Reads the output
 // and returns it as a string.
 func (sw *Switch) runConfigCommand(command string) (string, error) {
-	return sw.runCommand(fmt.Sprintf("config terminal\n%send\ncopy running-config startup-config\n\n", command))
+	
+	return sw.runCommand(fmt.Sprintf("config terminal\n%send\n", command))
+	// return sw.runCommand(fmt.Sprintf("config terminal\n%send\ncopy running-config startup-config\n\n", command))
 }
